@@ -2,21 +2,22 @@
 
 namespace Sofa\EloquentCascade;
 
-use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\ScopeInterface;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
-class CascadeDeletesExtension implements Scope
+class CascadeDeletesExtension implements ScopeInterface
 {
     /**
      * Extend the query builder with the needed functions.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $builder
+     * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return void
      */
-    public function extend(Builder $builder)
+    public function apply(Builder $builder, Eloquent $model)
     {
         $builder->onDelete(function (Builder $builder) {
             $model = $builder->getModel();
@@ -85,14 +86,7 @@ class CascadeDeletesExtension implements Scope
         }
     }
 
-    /**
-     * Apply the scope to a given Eloquent query builder.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $builder
-     * @param  \Illuminate\Database\Eloquent\Model  $model
-     * @return void
-     */
-    public function apply(Builder $builder, Eloquent $model)
+    public function remove(Builder $builder, Model $model)
     {
         //
     }
