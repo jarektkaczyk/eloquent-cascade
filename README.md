@@ -205,6 +205,7 @@ class Product extends \Illuminate\Database\Eloquent\Model
 
 - [ ] cascade `restoring` soft deleted models
 
+
 ## Contribution
 
 All contributions are welcome, PRs must be **PSR-2 compliant**.
