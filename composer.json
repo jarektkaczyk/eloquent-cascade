@@ -1,0 +1,38 @@
+{
+    "name": "sofa/eloquent-cascade",
+    "description": "Cascading deletes for Laravel Eloquent ORM.",
+    "license": "MIT",
+    "support": {
+        "issues": "https://github.com/jarektkaczyk/eloquent-cascade/issues",
+        "source": "https://github.com/jarektkaczyk/eloquent-cascade"
+    },
+    "keywords": [
+        "laravel",
+        "eloquent",
+        "cascade",
+        "cascading deletes",
+        "deletes"
+    ],
+    "authors": [
+        {
+            "name": "Jarek Tkaczyk",
+            "email": "jarek@softonsofa.com",
+            "homepage": "http://softonsofa.com/",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.9",
+        "illuminate/database": "~5.2"
+    },
+    "require-dev": {
+        "crysalead/kahlan" : "2.5.*",
+        "squizlabs/php_codesniffer": "2.3.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sofa\\EloquentCascade\\": "src"
+        }
+    },
+    "minimum-stability": "stable"
+}
