@@ -20,7 +20,9 @@ trait CascadeDeletes
                 $action = self::wasSoftDeleted($model) ? 'delete' : 'forceDelete';
 
                 foreach ($relations as $relation) {
-                    $model->{$relation}()->{$action}();
+                    $model->{$relation}()->get()->each(function ($related) use ($action) {
+                        $related->{$action}();
+                    });
                 }
             }
         });

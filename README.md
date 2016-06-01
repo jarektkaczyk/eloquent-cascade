@@ -2,7 +2,9 @@
 
 [![Downloads](https://poser.pugx.org/sofa/eloquent-cascade/downloads)](https://packagist.org/packages/sofa/eloquent-cascade) [![stable](https://poser.pugx.org/sofa/eloquent-cascade/v/stable.svg)](https://packagist.org/packages/sofa/eloquent-cascade)
 
-Cascading (soft / hard) deletes for the [Eloquent ORM (Laravel 5.0+)](https://laravel.com/docs/eloquent).
+Cascading (soft / hard) deletes for the [Eloquent ORM (Laravel 5.0+)](https://laravel.com/docs/eloquent). 
+
+**Why use this one?** There are couple of packages that already provide cascading deletes for eloquent, but none of them works with the query builder. Here you get support for both `$model->delete()` and `$query->delete()`, as well as `$model->forceDelete()`.
 
 * [simple usage](#simple)
 * [using with `SoftDeletes`](#using-with-softdeletes)
