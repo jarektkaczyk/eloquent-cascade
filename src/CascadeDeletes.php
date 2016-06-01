@@ -4,6 +4,15 @@ namespace Sofa\EloquentCascade;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * This trait provides Cascading Deletes/Restores feature to Eloquent models.
+ *
+ * *NOTE* If you use SoftDeletes as well, then make sure to use it first, eg.:
+ * 'use SoftDeletes, CascadeDeletes;'
+ *
+ * @package sofa/eloquent-cascade
+ * @author  Jarek Tkaczyk <jarek@softonsofa.com>
+ */
 trait CascadeDeletes
 {
     /**
@@ -15,12 +24,44 @@ trait CascadeDeletes
     {
         static::addGlobalScope(new CascadeDeletesExtension);
 
-        static::deleted(function ($model) {
-            if ($relations = $model->deletesWith()) {
-                $action = self::wasSoftDeleted($model) ? 'delete' : 'forceDelete';
+        static::registerDeletedHandler();
 
-                foreach ($relations as $relation) {
-                    $model->{$relation}()->{$action}();
+        if (static::usesSoftDeletes()) {
+            static::registerRestoredHandler();
+        }
+    }
+
+    /**
+     * Register handler for cascade deletes.
+     *
+     * @return void
+     */
+    protected static function registerDeletedHandler()
+    {
+        static::deleted(function ($model) {
+            $action = self::wasSoftDeleted($model) ? 'delete' : 'forceDelete';
+
+            foreach ($model->deletesWith() as $relation) {
+                $model->{$relation}()->get()->each(function ($related) use ($action) {
+                    $related->{$action}();
+                });
+            }
+        });
+    }
+
+    /**
+     * Register handler for cascade restores.
+     *
+     * @return void
+     */
+    protected static function registerRestoredHandler()
+    {
+        static::restored(function ($model) {
+            foreach ($model->deletesWith() as $relation) {
+                if ($model->{$relation}()->getMacro('onlyTrashed')) {
+                    $model->{$relation}()->onlyTrashed()->get()->each(function ($related) {
+                        $related->restore();
+                    });
                 }
             }
         });
@@ -44,7 +85,16 @@ trait CascadeDeletes
      */
     protected static function wasSoftDeleted($model)
     {
-        return in_array(SoftDeletes::class, class_uses_recursive(get_class($model)))
-                && $model->{$model->getDeletedAtColumn()};
+        return static::usesSoftDeletes() && $model->{$model->getDeletedAtColumn()};
+    }
+
+    /**
+     * Determine whether the model uses soft deletes.
+     *
+     * @return boolean
+     */
+    protected static function usesSoftDeletes()
+    {
+        return in_array(SoftDeletes::class, class_uses_recursive(static::class));
     }
 }
