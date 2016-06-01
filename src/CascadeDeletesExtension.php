@@ -2,12 +2,18 @@
 
 namespace Sofa\EloquentCascade;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
+/**
+ * This class provides Eloquent\Builder extensions for Cascading Deletes/Restores.
+ *
+ * @package sofa/eloquent-cascade
+ * @author  Jarek Tkaczyk <jarek@softonsofa.com>
+ */
 class CascadeDeletesExtension implements Scope
 {
     /**
@@ -18,12 +24,58 @@ class CascadeDeletesExtension implements Scope
      */
     public function extend(Builder $builder)
     {
+        $this->registerDeletedHandler($builder);
+
+        if ($this->usesSoftDeletes($builder)) {
+            $this->registerRestoredHandler($builder);
+        }
+    }
+
+    /**
+     * Register handler for cascade restores.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder $builder
+     * @return void
+     */
+    protected function registerRestoredHandler(Builder $builder)
+    {
+        // Here we override restore macro in order to add required behaviour.
+        $builder->macro('restore', function (Builder $builder) {
+            $restored = $builder->onlyTrashed()->get()->all();
+
+            // In order to get relation query with correct constraint applied we have
+            // to mimic eager loading 'where KEY in' behaviour rather than default
+            // constraints for single model which would be invalid in this case.
+            Relation::noConstraints(function () use ($model, $restored) {
+                foreach ($model->deletesWith() as $relation) {
+                    if ($this->usesSoftDeletes($query = $model->{$relation}())) {
+                        $query->onlyTrashed()->addEagerConstraints($restored);
+                        $query->restore();
+                    }
+                }
+            });
+
+            return $builder->update([$builder->getModel()->getDeletedAtColumn() => null]);
+        });
+    }
+
+    /**
+     * Register handler for cascade deletes.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder $builder [description]
+     * @return void
+     */
+    protected function registerDeletedHandler(Builder $builder)
+    {
         $builder->onDelete(function (Builder $builder) {
             $model = $builder->getModel();
 
             if (count($model->deletesWith())) {
                 $deleted = $builder->get()->all();
 
+                // In order to get relation query with correct constraint applied we have
+                // to mimic eager loading 'where KEY in' behaviour rather than default
+                // constraints for single model which would be invalid in this case.
                 Relation::noConstraints(function () use ($model, $deleted) {
                     foreach ($model->deletesWith() as $relation) {
                         $query = $model->{$relation}();
@@ -35,24 +87,6 @@ class CascadeDeletesExtension implements Scope
 
             return $this->performDelete($builder);
         });
-
-        if ($this->usesSoftDeletes($builder)) {
-            $builder->macro('restore', function (Builder $builder) {
-                $restored = $builder->onlyTrashed()->get()->all();
-
-                Relation::noConstraints(function () use ($model, $restored) {
-                    foreach ($model->deletesWith() as $relation) {
-                        $query = $model->{$relation}();
-                        if ($query->getMacro('restore')) {
-                            $query->onlyTrashed()->addEagerConstraints($restored);
-                            $query->restore();
-                        }
-                    }
-                });
-
-                return $builder->update([$builder->getModel()->getDeletedAtColumn() => null]);
-            });
-        }
     }
 
     /**
@@ -104,13 +138,9 @@ class CascadeDeletesExtension implements Scope
     }
 
     /**
-     * Apply the scope to a given Eloquent query builder.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $builder
-     * @param  \Illuminate\Database\Eloquent\Model  $model
-     * @return void
+     * Nothing here, just to satisfy the interface.
      */
-    public function apply(Builder $builder, Eloquent $model)
+    public function apply(Builder $builder, Model $model)
     {
         //
     }

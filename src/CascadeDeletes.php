@@ -4,6 +4,15 @@ namespace Sofa\EloquentCascade;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * This trait provides Cascading Deletes/Restores feature to Eloquent models.
+ *
+ * *NOTE* If you use SoftDeletes as well, then make sure to use it first, eg.:
+ * 'use SoftDeletes, CascadeDeletes;'
+ *
+ * @package sofa/eloquent-cascade
+ * @author  Jarek Tkaczyk <jarek@softonsofa.com>
+ */
 trait CascadeDeletes
 {
     /**
@@ -30,14 +39,12 @@ trait CascadeDeletes
     protected static function registerDeletedHandler()
     {
         static::deleted(function ($model) {
-            if ($relations = $model->deletesWith()) {
-                $action = self::wasSoftDeleted($model) ? 'delete' : 'forceDelete';
+            $action = self::wasSoftDeleted($model) ? 'delete' : 'forceDelete';
 
-                foreach ($relations as $relation) {
-                    $model->{$relation}()->get()->each(function ($related) use ($action) {
-                        $related->{$action}();
-                    });
-                }
+            foreach ($model->deletesWith() as $relation) {
+                $model->{$relation}()->get()->each(function ($related) use ($action) {
+                    $related->{$action}();
+                });
             }
         });
     }
@@ -51,9 +58,11 @@ trait CascadeDeletes
     {
         static::restored(function ($model) {
             foreach ($model->deletesWith() as $relation) {
-                $model->{$relation}()->onlyTrashed()->get()->each(function ($related) {
-                    $related->restore();
-                });
+                if ($model->{$relation}()->getMacro('onlyTrashed')) {
+                    $model->{$relation}()->onlyTrashed()->get()->each(function ($related) {
+                        $related->restore();
+                    });
+                }
             }
         });
     }
@@ -86,6 +95,6 @@ trait CascadeDeletes
      */
     protected static function usesSoftDeletes()
     {
-        return in_array(SoftDeletes::class, class_uses_recursive(self::class));
+        return in_array(SoftDeletes::class, class_uses_recursive(static::class));
     }
 }
