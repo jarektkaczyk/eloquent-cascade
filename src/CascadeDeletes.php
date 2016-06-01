@@ -15,6 +15,20 @@ trait CascadeDeletes
     {
         static::addGlobalScope(new CascadeDeletesExtension);
 
+        static::registerDeletedHandler();
+
+        if (static::usesSoftDeletes()) {
+            static::registerRestoredHandler();
+        }
+    }
+
+    /**
+     * Register handler for cascade deletes.
+     *
+     * @return void
+     */
+    protected static function registerDeletedHandler()
+    {
         static::deleted(function ($model) {
             if ($relations = $model->deletesWith()) {
                 $action = self::wasSoftDeleted($model) ? 'delete' : 'forceDelete';
@@ -22,6 +36,22 @@ trait CascadeDeletes
                 foreach ($relations as $relation) {
                     $model->{$relation}()->{$action}();
                 }
+            }
+        });
+    }
+
+    /**
+     * Register handler for cascade restores.
+     *
+     * @return void
+     */
+    protected static function registerRestoredHandler()
+    {
+        static::restored(function ($model) {
+            foreach ($model->deletesWith() as $relation) {
+                $model->{$relation}()->onlyTrashed()->get()->each(function ($related) {
+                    $related->restore();
+                });
             }
         });
     }
@@ -44,7 +74,16 @@ trait CascadeDeletes
      */
     protected static function wasSoftDeleted($model)
     {
-        return in_array(SoftDeletes::class, class_uses_recursive(get_class($model)))
-                && $model->{$model->getDeletedAtColumn()};
+        return static::usesSoftDeletes() && $model->{$model->getDeletedAtColumn()};
+    }
+
+    /**
+     * Determine whether the model uses soft deletes.
+     *
+     * @return boolean
+     */
+    protected static function usesSoftDeletes()
+    {
+        return in_array(SoftDeletes::class, class_uses_recursive(self::class));
     }
 }

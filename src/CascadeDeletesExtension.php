@@ -35,6 +35,24 @@ class CascadeDeletesExtension implements Scope
 
             return $this->performDelete($builder);
         });
+
+        if ($this->usesSoftDeletes($builder)) {
+            $builder->macro('restore', function (Builder $builder) {
+                $restored = $builder->onlyTrashed()->get()->all();
+
+                Relation::noConstraints(function () use ($model, $restored) {
+                    foreach ($model->deletesWith() as $relation) {
+                        $query = $model->{$relation}();
+                        if ($query->getMacro('restore')) {
+                            $query->onlyTrashed()->addEagerConstraints($restored);
+                            $query->restore();
+                        }
+                    }
+                });
+
+                return $builder->update([$builder->getModel()->getDeletedAtColumn() => null]);
+            });
+        }
     }
 
     /**
