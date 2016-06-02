@@ -38,7 +38,7 @@ trait CascadeDeletes
      */
     protected static function registerDeletedHandler()
     {
-        static::deleted(function ($model) {
+        static::deleting(function ($model) {
             $action = self::wasSoftDeleted($model) ? 'delete' : 'forceDelete';
 
             foreach ($model->deletesWith() as $relation) {
