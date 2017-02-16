@@ -86,7 +86,7 @@ class CascadeDeletesExtension implements ScopeInterface
         }
     }
 
-    public function remove(Builder $builder, Model $model)
+    public function remove(Builder $builder, Eloquent $model)
     {
         //
     }
