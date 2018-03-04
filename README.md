@@ -205,7 +205,10 @@ class Product extends \Illuminate\Database\Eloquent\Model
 
 ## TODO
 
-- [ ] cascade `restoring` soft deleted models
+- [x] cascade `restoring` soft deleted models
+- [ ] detach m-m relations / delete related
+- [ ] add SET NULL and RESTRICT options (?)
+
 
 
 ## Contribution
