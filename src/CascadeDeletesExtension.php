@@ -70,7 +70,7 @@ class CascadeDeletesExtension implements Scope
         $builder->onDelete(function (Builder $builder) {
             $model = $builder->getModel();
 
-            if (count($model->deletesWith())) {
+            if (!empty($model->deletesWith())) {
                 $deleted = $builder->get()->all();
 
                 // In order to get relation query with correct constraint applied we have
@@ -130,7 +130,7 @@ class CascadeDeletesExtension implements Scope
      */
     protected function getDeletedAtColumn($builder)
     {
-        if (count($builder->getQuery()->joins) > 0) {
+        if (!empty($builder->getQuery()->joins)) {
             return $builder->getModel()->getQualifiedDeletedAtColumn();
         } else {
             return $builder->getModel()->getDeletedAtColumn();
