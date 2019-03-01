@@ -57,11 +57,21 @@ trait CascadeDeletes
     protected static function registerRestoredHandler()
     {
         static::restored(function ($model) {
-            foreach ($model->deletesWith() as $relation) {
-                if ($model->{$relation}()->getMacro('onlyTrashed')) {
-                    $model->{$relation}()->onlyTrashed()->get()->each(function ($related) {
-                        $related->restore();
-                    });
+            foreach ($model->deletesWith() as $relation_name) {
+                $relation = $model->{$relation_name}();
+
+                if ($relation->getMacro('onlyTrashed')) {
+                    $related = $relation->getRelated();
+
+                    $parent_deleted_at = $model->getAttribute($model->getDeletedAtColumn());
+
+                    $relation->onlyTrashed()
+                        // This will ensure we don't restore models that had been deleted before this model
+                        ->where($related->getQualifiedDeletedAtColumn(), '>=', $parent_deleted_at)
+                        ->get()
+                        ->each(function ($related) {
+                            $related->restore();
+                        });
                 }
             }
         });

@@ -8,6 +8,7 @@ Cascading (soft / hard) deletes for the [Eloquent ORM (Laravel 5.0+)](https://la
 
 * [simple usage](#simple)
 * [using with `SoftDeletes`](#using-with-softdeletes)
+* [CHANGELOG](#changelog)
 
 ## Installation
 
@@ -214,3 +215,10 @@ class Product extends \Illuminate\Database\Eloquent\Model
 ## Contribution
 
 All contributions are welcome, PRs must be **PSR-2 compliant**.
+
+
+## CHANGELOG
+
+#### v6 <- v5.x
+- Restoring now will cascade **only for children that were deleted along with the parent model**, not before. That is, if some of children models were soft deleted before the parent model got deleted, those children will not be restored when parent is being restored. That's the expected behavior.
+- The above requires that when calling restore on the query builder rather than single model (`$query->restore()` vs `$model->restore()`), it will run N queries, 1 for each restored model.

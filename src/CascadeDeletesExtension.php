@@ -41,19 +41,28 @@ class CascadeDeletesExtension implements Scope
     {
         // Here we override restore macro in order to add required behaviour.
         $builder->macro('restore', function (Builder $builder) {
-            $restored = $builder->onlyTrashed()->get()->all();
+            $model = $builder->getModel();
 
-            // In order to get relation query with correct constraint applied we have
-            // to mimic eager loading 'where KEY in' behaviour rather than default
-            // constraints for single model which would be invalid in this case.
-            Relation::noConstraints(function () use ($model, $restored) {
-                foreach ($model->deletesWith() as $relation) {
-                    if ($this->usesSoftDeletes($query = $model->{$relation}())) {
-                        $query->onlyTrashed()->addEagerConstraints($restored);
-                        $query->restore();
+            collect($model->deletesWith())
+                ->filter(function ($relation_name) use ($model) {
+                    return $this->usesSoftDeletes($model->{$relation_name}());
+                })->each(function ($relation_name) use ($builder) {
+                    // It is a bit tricky to achieve expected result which is restoring only those children that were
+                    // delete along with the parent model (not before). We cannot easily achieve that on the query
+                    // level, so we'll simply run N queries here. Should be fine as this is an edge case anyway.
+                    $restored_models = $builder->onlyTrashed()->get();
+
+                    foreach ($restored_models as $restored_model) {
+                        $relation = $restored_model->{$relation_name}();
+                        $related = $relation->getRelated();
+
+                        $parent_deleted_at = $restored_model->getAttribute($restored_model->getDeletedAtColumn());
+
+                        $relation
+                            ->where($related->getQualifiedDeletedAtColumn(), '>=', $parent_deleted_at)
+                            ->restore();
                     }
-                }
-            });
+                });
 
             return $builder->update([$builder->getModel()->getDeletedAtColumn() => null]);
         });
