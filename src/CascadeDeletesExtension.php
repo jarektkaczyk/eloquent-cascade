@@ -42,6 +42,7 @@ class CascadeDeletesExtension implements Scope
         // Here we override restore macro in order to add required behaviour.
         $builder->macro('restore', function (Builder $builder) {
             $restored = $builder->onlyTrashed()->get()->all();
+            $model = $builder->getModel();
 
             // In order to get relation query with correct constraint applied we have
             // to mimic eager loading 'where KEY in' behaviour rather than default
